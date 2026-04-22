@@ -1,4 +1,4 @@
-from flask import Flask, request
+from flask import Flask, request, jsonify
 from datetime import datetime
 import json
 import os
@@ -8,6 +8,7 @@ app = Flask(__name__)
 LICENSE_FILE = 'licenses.json'
 ADMIN_KEY = "AuraV6_Secret_Key_2024"
 
+# Default licenses
 DEFAULT_LICENSES = {
     "AURA-TEST-12345": {
         "user": "TestUser",
@@ -46,47 +47,61 @@ def verify_license():
     
     licenses = load_licenses()
     
+    # Check if key exists
     if not key or key not in licenses:
         return "INVALID"
     
     license_data = licenses[key]
     expiry_date = datetime.strptime(license_data['expires'], '%Y-%m-%d').date()
     
+    # Check if expired
     if expiry_date < today:
         return f"EXPIRED|{license_data['expires']}"
     
+    # Handle device tracking
     if device_id:
         if device_id not in license_data['devices']:
             if len(license_data['devices']) >= license_data['max_devices']:
                 return f"DEVICE_LIMIT|{len(license_data['devices'])}|{license_data['max_devices']}"
             license_data['devices'].append(device_id)
             save_licenses(licenses)
-            # Log the new device activation
-            print(f"NEW DEVICE: Key={key}, Device={device_id}, Total={len(license_data['devices'])}")
     
     days_left = (expiry_date - today).days
     return f"VALID|{license_data['expires']}|{days_left}|{len(license_data['devices'])}|{license_data['max_devices']}"
 
+# ============================================
+# FIX 1: STATS ROUTE (was missing - caused 404)
+# ============================================
 @app.route('/stats')
-def license_stats():
+def get_stats():
     admin_key = request.args.get('admin_key')
     if admin_key != ADMIN_KEY:
-        return "Unauthorized"
+        return "Unauthorized", 401
     
     licenses = load_licenses()
-    return json.dumps(licenses, indent=2)
+    return jsonify(licenses)
 
+# ============================================
+# FIX 2: RESET ROUTE (was missing - caused 404)
+# ============================================
 @app.route('/reset')
 def reset_licenses():
     admin_key = request.args.get('admin_key')
     if admin_key != ADMIN_KEY:
-        return "Unauthorized"
+        return "Unauthorized", 401
     
     if os.path.exists(LICENSE_FILE):
         os.remove(LICENSE_FILE)
     
     load_licenses()
     return "Licenses reset successfully! New defaults loaded."
+
+# ============================================
+# FIX 3: HEALTH CHECK ROUTE (to verify app is running)
+# ============================================
+@app.route('/health')
+def health_check():
+    return "OK", 200
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
