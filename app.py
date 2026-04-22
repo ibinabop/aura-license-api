@@ -6,9 +6,26 @@ import os
 app = Flask(__name__)
 
 LICENSE_FILE = 'licenses.json'
+ADMIN_KEY = "AuraV6_Secret_Key_2024"
 
-# Default licenses (will be saved to file)
+# Default licenses
 DEFAULT_LICENSES = {
+    "AURA-TEST-12345": {
+        "user": "TestUser",
+        "email": "test@test.com",
+        "plan": "Test",
+        "expires": "2030-12-31",
+        "max_devices": 3,
+        "devices": []
+    },
+    "AURA-A6240AA3-C90C73": {
+        "user": "Aura",
+        "email": "ibinaboosa@gmail.com",
+        "plan": "Lifetime",
+        "expires": "2099-12-31",
+        "max_devices": 1,
+        "devices": []
+    },
     "AURA-877D0E9B-DDB7CD": {
         "user": "Aura",
         "email": "ibinaboosa@gmail.com",
@@ -23,7 +40,6 @@ def load_licenses():
     if os.path.exists(LICENSE_FILE):
         with open(LICENSE_FILE, 'r') as f:
             return json.load(f)
-    # First run - create default licenses
     save_licenses(DEFAULT_LICENSES)
     return DEFAULT_LICENSES
 
@@ -58,25 +74,26 @@ def verify_license():
     days_left = (expiry_date - today).days
     return f"VALID|{license_data['expires']}|{days_left}|{len(license_data['devices'])}|{license_data['max_devices']}"
 
-@app.route('/add_license', methods=['POST'])
-def add_license():
-    """Admin endpoint to add licenses remotely"""
+@app.route('/stats')
+def license_stats():
     admin_key = request.args.get('admin_key')
-    if admin_key != 'YOUR_SECRET_KEY_HERE':
+    if admin_key != ADMIN_KEY:
         return "Unauthorized"
     
-    data = request.json
     licenses = load_licenses()
-    licenses[data['key']] = {
-        "user": data['user'],
-        "email": data['email'],
-        "plan": data['plan'],
-        "expires": data['expires'],
-        "max_devices": data['max_devices'],
-        "devices": []
-    }
-    save_licenses(licenses)
-    return "License added"
+    return json.dumps(licenses, indent=2)
+
+@app.route('/reset')
+def reset_licenses():
+    admin_key = request.args.get('admin_key')
+    if admin_key != ADMIN_KEY:
+        return "Unauthorized"
+    
+    if os.path.exists(LICENSE_FILE):
+        os.remove(LICENSE_FILE)
+    
+    load_licenses()
+    return "Licenses reset successfully! New defaults loaded."
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=8080)
