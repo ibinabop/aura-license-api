@@ -6,8 +6,8 @@ app = Flask(__name__)
 # License database
 licenses = {
     "AURA-TEST-12345": {
-        "expires": "2025-12-31",
-        "max_devices": 3,
+        "expires": "2030-12-31",
+        "max_devices": 1,
         "devices": []
     },
     # Add more licenses here
