@@ -8,7 +8,6 @@ app = Flask(__name__)
 LICENSE_FILE = 'licenses.json'
 ADMIN_KEY = "AuraV6_Secret_Key_2024"
 
-# Default licenses
 DEFAULT_LICENSES = {
     "AURA-TEST-12345": {
         "user": "TestUser",
@@ -19,14 +18,6 @@ DEFAULT_LICENSES = {
         "devices": []
     },
     "AURA-A6240AA3-C90C73": {
-        "user": "Aura",
-        "email": "ibinaboosa@gmail.com",
-        "plan": "Lifetime",
-        "expires": "2099-12-31",
-        "max_devices": 1,
-        "devices": []
-    },
-    "AURA-877D0E9B-DDB7CD": {
         "user": "Aura",
         "email": "ibinaboosa@gmail.com",
         "plan": "Lifetime",
@@ -70,6 +61,8 @@ def verify_license():
                 return f"DEVICE_LIMIT|{len(license_data['devices'])}|{license_data['max_devices']}"
             license_data['devices'].append(device_id)
             save_licenses(licenses)
+            # Log the new device activation
+            print(f"NEW DEVICE: Key={key}, Device={device_id}, Total={len(license_data['devices'])}")
     
     days_left = (expiry_date - today).days
     return f"VALID|{license_data['expires']}|{days_left}|{len(license_data['devices'])}|{license_data['max_devices']}"
